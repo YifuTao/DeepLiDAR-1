@@ -48,9 +48,12 @@ def test(model, rgb, lidar, mask):
         return torch.squeeze(predicted_dense).cpu()
 
 def get_testing_img_paths():
-    gt_folder = os.path.join(KITTI_DATASET_PATH, 'depth_selection', 'val_selection_cropped', 'groundtruth_depth')
-    rgb_folder = os.path.join(KITTI_DATASET_PATH, 'depth_selection', 'val_selection_cropped', 'image')
-    lidar_folder = os.path.join(KITTI_DATASET_PATH, 'depth_selection', 'val_selection_cropped', 'velodyne_raw')
+    # gt_folder = os.path.join(KITTI_DATASET_PATH, 'depth_selection', 'val_selection_cropped', 'groundtruth_depth')
+    # rgb_folder = os.path.join(KITTI_DATASET_PATH, 'depth_selection', 'val_selection_cropped', 'image')
+    # lidar_folder = os.path.join(KITTI_DATASET_PATH, 'depth_selection', 'val_selection_cropped', 'velodyne_raw')
+    gt_folder = '/home/yifu/data/tmp/gt'
+    rgb_folder = '/home/yifu/data/tmp/rgb'
+    lidar_folder = '/home/yifu/data/tmp/lidar'
 
     gt_filenames = sorted([img for img in os.listdir(gt_folder)])
     rgb_filenames = sorted([img for img in os.listdir(rgb_folder)])
@@ -85,7 +88,7 @@ def main():
         # read image
         print(rgb_paths[idx])
         print(lidar_paths[idx])
-        exit()
+        # exit()
         rgb = read_rgb(rgb_paths[idx]) # h x w x 3
         lidar, mask = read_lidar(lidar_paths[idx]) # h x w x 1
         gt = read_gt(gt_paths[idx]) # h x w x 1
@@ -97,6 +100,8 @@ def main():
         # saved file path
         fn = os.path.basename(rgb_paths[idx])
         saved_path = os.path.join(PREDICTED_RESULT_DIR, fn)
+        print('saved path:')
+        print(saved_path)
 
         # run model
         pred = test(model, rgb, lidar, mask).numpy()

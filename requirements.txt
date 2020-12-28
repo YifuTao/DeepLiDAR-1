@@ -27,7 +27,6 @@ numpy==1.18.2
 oauthlib==3.1.0
 opt-einsum==3.2.0
 Pillow==7.0.0
-pkg-resources==0.0.0
 protobuf==3.11.3
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
@@ -41,7 +40,6 @@ rsa==4.0
 scikit-image==0.16.2
 scipy==1.4.1
 six==1.14.0
-surface-normal==0.0.0
 tensorboard==2.1.1
 tensorboardX==2.0
 tensorflow==2.1.0

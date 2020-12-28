@@ -67,8 +67,14 @@ class depth_dataset(Dataset):
         surface_normal: 3 x 128 x 256
         mask_normal: 3 x 128 x 256
         """
-        date = self.rgb_image_paths[idx].split('/')[6][:10] # use to get intrinsic
-
+        date = self.rgb_image_paths[idx].split('/')[7][:10] # use to get intrinsic
+        # print(idx)
+        # print(self.rgb_image_paths[idx])
+        # print(self.rgb_image_paths[idx].split('/')[7][:10])
+        # print('--------------------------')
+        # print(date)
+        # print(self.rgb_image_paths)
+        
         intrinsics = INTRINSICS[date]
         params = np.ones((self.h, self.w, 3)).astype('float32')
         params[:, :, 0] = params[:, :, 0] * intrinsics[0]
@@ -76,6 +82,7 @@ class depth_dataset(Dataset):
         params[:, :, 2] = params[:, :, 2] * intrinsics[2]
 
         # read image
+        # print(self.rgb_image_paths[idx])
         rgb = read_rgb(self.rgb_image_paths[idx])
         lidar, mask = read_lidar(self.lidar_image_paths[idx])
         gt = read_gt(self.gt_image_paths[idx])

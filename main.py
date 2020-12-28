@@ -22,7 +22,7 @@ parser.add_argument('-n', '--num_data', type=int, default=20000, help='the numbe
 args = parser.parse_args()
 
 DEVICE = 'cuda' if torch.cuda.is_available() and not args.using_cpu else 'cpu'
-
+print(DEVICE)
 
 def main_train(model, stage):
     # setting tensorboard
@@ -37,8 +37,8 @@ def main_train(model, stage):
     early_stop = EarlyStop(patience=10, mode='min')
 
     # get data loader
-    loader = {'train': get_loader('train', num_data=args.num_data), \
-              'val': get_loader('val', shuffle=False, num_data=1000)}
+    loader = {'train': get_loader('train', num_data=args.num_data, batch_size=args.batch_size), \
+              'val': get_loader('val', shuffle=False, num_data=10, batch_size=args.batch_size)}
     
 
     for epoch in range(args.epoch):
@@ -48,7 +48,6 @@ def main_train(model, stage):
         # predict dense and surface normal using testing image and write them to tensorboard
         predicted_dense, pred_surface_normal = get_depth_and_normal(model, testing_rgb, testing_lidar, testing_mask)
         tb_writer.tensorboard_write(epoch, train_losses, val_losses, predicted_dense, pred_surface_normal)
-
         if early_stop.stop(val_losses[0], model, epoch+1, saved_model_path):
             break
 
@@ -65,8 +64,8 @@ def main():
         model.load_state_dict(state_dict)
         print('Loss of loaded model: {:.4f}'.format(dic['val_loss']))
 
-    #main_train(model, 'N')
-    #main_train(model, 'D')
+    main_train(model, 'N')
+    main_train(model, 'D')
     main_train(model, 'A')
 
 

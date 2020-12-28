@@ -2,7 +2,7 @@ import os
 from multiprocessing import Pool, cpu_count
 
 # surface_normal library from https://github.com/valgur/surface-normal
-from surface_normal import normals_from_depth
+# from surface_normal import normals_from_depth
 from tqdm.auto import tqdm
 from env import KITTI_DATASET_PATH
 
@@ -18,9 +18,9 @@ KITTI_GT_PATH = os.path.join(KITTI_DATASET_PATH, 'data_depth_annotated')
 KITTI_NORMALS_PATH = os.path.join(KITTI_DATASET_PATH, 'data_depth_normals')
 num_cores = cpu_count()
 
-def _process(args):
-    normals_from_depth(*args, use_cuda=True)
-    return args[1]
+# def _process(args):
+#     normals_from_depth(*args, use_cuda=True)
+#     return args[1]
 
 if __name__ == '__main__':
     if not os.path.exists(KITTI_NORMALS_PATH):
@@ -52,8 +52,17 @@ if __name__ == '__main__':
  
                     if not os.path.exists(normal_img_path):
                         processing_args.append((gt_img_path, normal_img_path, intrinsic, 15, 0.1))
+    
+    with open('path.txt',"w") as text_file:
+        for listitem in processing_args:
+            text_file.write("%s\n" %listitem[0])
+            text_file.write("%s\n" %listitem[1])
+            text_file.write("%f\n%f\n%f\n"%(listitem[2][0],listitem[2][1],listitem[2][2],))
+            
 
-    print("Using", num_cores, "cores")
-    pool = Pool(num_cores)
-    for _ in tqdm(pool.imap_unordered(_process, processing_args), total=len(processing_args)):
-        pass
+    text_file.close()
+    
+    # print("Using", num_cores, "cores")
+    # pool = Pool(num_cores)
+    # for _ in tqdm(pool.imap_unordered(_process, processing_args), total=len(processing_args)):
+    #     pass
