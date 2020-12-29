@@ -64,8 +64,8 @@ def main():
         model.load_state_dict(state_dict)
         print('Loss of loaded model: {:.4f}'.format(dic['val_loss']))
 
-    main_train(model, 'N')
-    main_train(model, 'D')
+    # main_train(model, 'N')
+    # main_train(model, 'D')
     main_train(model, 'A')
 
 

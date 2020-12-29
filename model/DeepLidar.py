@@ -6,7 +6,7 @@ from model.module import *
 class deepCompletionUnit(nn.Module):
     def __init__(self, mode):
         super(deepCompletionUnit, self).__init__()
-        assert mode in {'N', 'C', 'I'}
+        assert mode in {'N', 'C', 'I', 'U'}
         self.mode = mode
 
         #s_filter = [32, 99, 195, 387, 515, 512]
@@ -114,6 +114,38 @@ class deepCompletionUnit(nn.Module):
             self.conv_rgb5_1 = ResBlock(channels_in=r_filter[4], num_filters=r_filter[4], stride=1)
             self.conv_rgb6 = ResBlock(channels_in=r_filter[4], num_filters=r_filter[5], stride=2)
             self.conv_rgb6_1 = ResBlock(channels_in=r_filter[5], num_filters=r_filter[5], stride=1)
+        elif mode == 'U':
+            s_filter = [32, r_filter[1]+d_filter[0]+1, r_filter[2]+d_filter[1]+1, r_filter[3]+d_filter[2]+1, r_filter[4]+d_filter[3]+1, 256]
+
+            self.upsample4 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
+            self.upsample3 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
+            self.upsample2 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)
+            self.upsample1 = nn.ConvTranspose2d(1, 1, 4, 2, 1, bias=False)   
+
+            self.predict_normal5 = nn.Conv2d(s_filter[5], 1, kernel_size=3, stride=1, padding=1, bias=True)
+            self.predict_normal4 = nn.Conv2d(s_filter[4], 1, kernel_size=3, stride=1, padding=1, bias=True)
+            self.predict_normal3 = nn.Conv2d(s_filter[3], 1, kernel_size=3, stride=1, padding=1, bias=True)
+            self.predict_normal2 = nn.Conv2d(s_filter[2], 1, kernel_size=3, stride=1, padding=1, bias=True)
+            self.predict_normal1 = nn.Conv2d(s_filter[1], 1, kernel_size=3, stride=1, padding=1, bias=True)
+
+            self.conv_sparse1 = ResBlock(channels_in=2, num_filters=s_filter[0], stride=1)
+            self.conv_sparse2 = ResBlock(channels_in=s_filter[0], num_filters=s_filter[1], stride=1)
+            self.conv_sparse3 = ResBlock(channels_in=s_filter[1], num_filters=s_filter[2], stride=2)
+            self.conv_sparse4 = ResBlock(channels_in=s_filter[2], num_filters=s_filter[3], stride=2)
+            self.conv_sparse5 = ResBlock(channels_in=s_filter[3], num_filters=s_filter[4], stride=2)
+            self.conv_sparse6 = ResBlock(channels_in=s_filter[4], num_filters=s_filter[5], stride=2)
+        
+            self.conv_rgb1 = ResBlock(channels_in=3, num_filters=r_filter[0], stride=1)
+            self.conv_rgb2 = ResBlock(channels_in=r_filter[0], num_filters=r_filter[1], stride=1)
+            self.conv_rgb3 = ResBlock(channels_in=r_filter[1], num_filters=r_filter[2], stride=2)
+            self.conv_rgb3_1 = ResBlock(channels_in=r_filter[2], num_filters=r_filter[2], stride=1)
+            self.conv_rgb4 = ResBlock(channels_in=r_filter[2], num_filters=r_filter[3], stride=2)
+            self.conv_rgb4_1 = ResBlock(channels_in=r_filter[3], num_filters=r_filter[3], stride=1)
+            self.conv_rgb5 = ResBlock(channels_in=r_filter[3], num_filters=r_filter[4], stride=2)
+            self.conv_rgb5_1 = ResBlock(channels_in=r_filter[4], num_filters=r_filter[4], stride=1)
+            self.conv_rgb6 = ResBlock(channels_in=r_filter[4], num_filters=r_filter[5], stride=2)
+            self.conv_rgb6_1 = ResBlock(channels_in=r_filter[5], num_filters=r_filter[5], stride=1)
+
 
         #self.deconv4 = UpProject(r_filter[5], 256)
         #self.deconv3 = UpProject(s_filter[4], 128)
@@ -123,6 +155,7 @@ class deepCompletionUnit(nn.Module):
         self.deconv3 = nn.ConvTranspose2d(s_filter[4], d_filter[2], 4, 2, 1, bias=False)
         self.deconv2 = nn.ConvTranspose2d(s_filter[3], d_filter[1], 4, 2, 1, bias=False)
         self.deconv1 = nn.ConvTranspose2d(s_filter[2], d_filter[0], 4, 2, 1, bias=False)
+        self.softplus_layer = nn.Softplus()
 
 
     def forward(self, rgb, lidar, mask):
@@ -167,6 +200,10 @@ class deepCompletionUnit(nn.Module):
         if self.mode == 'N':
             return dense, cat2
 
+        if self.mode == 'U':
+            dense = self.softplus_layer(dense) + 0.001  # so min deviation output >=0.001 always positive
+            return dense
+
 class maskBlock(nn.Module):
     def __init__(self):
         super(maskBlock, self).__init__()
@@ -196,19 +233,21 @@ class deepLidar(nn.Module):
         self.normal = deepCompletionUnit(mode='I')
         self.color_path = deepCompletionUnit(mode='C')
         self.normal_path = deepCompletionUnit(mode='N')
+        self.uncertainty = deepCompletionUnit(mode='U')
         self.mask_block_C = maskBlock()
         self.mask_block_N = maskBlock()
 
     def forward(self, rgb, lidar, mask, stage):
         surface_normal = self.normal(rgb, lidar, mask)
         if stage == 'N':
-            return None, None, None, None, surface_normal
+            return None, None, None, None, surface_normal, None
 
         color_path_dense, confident_mask, cat2C = self.color_path(rgb, lidar, mask)
         normal_path_dense, cat2N = self.normal_path(surface_normal, lidar, confident_mask)
+        uncertainty = self.uncertainty(rgb, lidar, mask)
 
         color_attn = self.mask_block_C(cat2C)
         normal_attn = self.mask_block_N(cat2N)
 
-        return color_path_dense, normal_path_dense, color_attn, normal_attn, surface_normal
+        return color_path_dense, normal_path_dense, color_attn, normal_attn, surface_normal, uncertainty
 

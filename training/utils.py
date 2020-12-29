@@ -80,7 +80,7 @@ def normal_loss(pred_normal, gt_normal, gt_normal_mask):
 
 
 
-def get_depth_loss(dense, c_dense, n_dense, gt):
+def get_depth_loss(dense, c_dense, n_dense, uncertainty, gt):
     """
     dense: b x 1 x 128 x 256
     c_dense: b x 1 x 128 x 256
@@ -88,23 +88,39 @@ def get_depth_loss(dense, c_dense, n_dense, gt):
     gt: b x 1 x 128 x 256
     params: b x 3 x 128 x 256
     normals: b x 128 x 256 x 3
+    uncertainty: b x 128 x 256 x 1
     """
+
     valid_mask = (gt > 0.0).detach() # b x 1 x 128 x 256
-
     gt = gt[valid_mask]
-    dense, c_dense, n_dense = dense[valid_mask], c_dense[valid_mask], n_dense[valid_mask]
-
+    dense, c_dense, n_dense, uncertainty = dense[valid_mask], c_dense[valid_mask], n_dense[valid_mask], uncertainty[valid_mask]
     criterion = nn.MSELoss()
-    loss_d = torch.sqrt(criterion(dense, gt))
-    loss_c = torch.sqrt(criterion(c_dense, gt))
-    loss_n = torch.sqrt(criterion(n_dense, gt))
+
+    loss_d = torch.mean(torch.pow(dense-gt, 2) / uncertainty)
+    # print(loss_d)
+    # print(torch.pow(dense-gt, 2))
+    # print(torch.mean(torch.pow(dense-gt, 2)))
+    # print(criterion(dense, gt))
+    loss_u = torch.mean(-1 * torch.log(1/uncertainty))  # torch.log(uncertainty) numerical stability
+    # print(loss_u)
+    # print('----------------')
+
     
-    return loss_d, loss_c, loss_n
+
+    # loss_d = torch.sqrt(criterion(dense, gt))
+    # loss_c = torch.sqrt(criterion(c_dense, gt))
+    # loss_n = torch.sqrt(criterion(n_dense, gt))
+    loss_c = criterion(c_dense, gt)
+    loss_n = criterion(n_dense, gt)
+    
+
+    return loss_d, loss_c, loss_n, loss_u
 
 
 
 
-def get_loss(color_path_dense, normal_path_dense, color_attn, normal_attn, pred_surface_normal, stage, gt_depth, params, gt_surface_normal, gt_normal_mask):
+
+def get_loss(color_path_dense, normal_path_dense, color_attn, normal_attn, pred_surface_normal, stage, gt_depth, params, gt_surface_normal, gt_normal_mask, uncertainty):
     assert stage in {'D', 'N', 'A'}
 
     zero_loss = nn.MSELoss()(torch.ones(1, 1).to(gt_depth.device), torch.ones(1, 1).to(gt_depth.device))
@@ -128,7 +144,7 @@ def get_loss(color_path_dense, normal_path_dense, color_attn, normal_attn, pred_
         #output_normal[:, :, :, 1] = -pred_surface_normal[:, :, :, 2]
         #output_normal[:, :, :, 2] = -pred_surface_normal[:, :, :, 1]
 
-        loss_d, loss_c, loss_n = get_depth_loss(predicted_dense, pred_color_path_dense, pred_normal_path_dense, gt_depth)
+        loss_d, loss_c, loss_n, loss_u = get_depth_loss(predicted_dense, pred_color_path_dense, pred_normal_path_dense, uncertainty, gt_depth)
         loss_normal = normal_loss(pred_surface_normal, gt_surface_normal, gt_normal_mask)
 
-    return loss_c, loss_n, loss_d, loss_normal
+    return loss_c, loss_n, loss_d, loss_normal, loss_u
