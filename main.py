@@ -30,8 +30,8 @@ def main_train(model, stage):
     tb_writer = TensorboardWriter(tensorboard_path)
     
     # get one testing image, used to visualize result in each eopch 
-    testing_rgb, testing_lidar, testing_mask = tb_writer.get_testing_img()
-    testing_rgb, testing_lidar, testing_mask = testing_rgb.to(DEVICE), testing_lidar.to(DEVICE), testing_mask.to(DEVICE)
+    testing_rgb, testing_lidar, testing_mask, testing_gt_depth = tb_writer.get_testing_img()
+    testing_rgb, testing_lidar, testing_mask, testing_gt_depth = testing_rgb.to(DEVICE), testing_lidar.to(DEVICE), testing_mask.to(DEVICE), testing_gt_depth.to(DEVICE)
 
     # setting early stop, if result doen't improve more than PATIENCE times, stop iteration
     early_stop = EarlyStop(patience=10, mode='min')
@@ -47,7 +47,7 @@ def main_train(model, stage):
 
         # predict dense and surface normal using testing image and write them to tensorboard
         predicted_dense, pred_surface_normal = get_depth_and_normal(model, testing_rgb, testing_lidar, testing_mask)
-        tb_writer.tensorboard_write(epoch, train_losses, val_losses, predicted_dense, pred_surface_normal)
+        tb_writer.tensorboard_write(epoch, train_losses, val_losses, predicted_dense, pred_surface_normal, testing_gt_depth)
         if early_stop.stop(val_losses[0], model, epoch+1, saved_model_path):
             break
 

@@ -1,8 +1,10 @@
 from dataloader.dataloader import get_loader
-from training.utils import normal_to_0_1
+from training.utils import normal_to_0_1, normal_to_0_gtmax
 from tensorboardX import SummaryWriter
 import torch
 import numpy as np
+import matplotlib.pyplot as plt
+from PIL import Image
 
 class TensorboardWriter():
     def __init__(self, path):
@@ -20,17 +22,34 @@ class TensorboardWriter():
         loader = get_loader('val', shuffle=False, num_data=1, crop=False)
         for rgb, lidar, mask, gt_depth, params, gt_surface_normal, gt_normal_mask in loader:
             self.writer.add_image('RGB input', rgb[0] / 255.0, 1)
-            self.writer.add_image('lidar input', lidar[0], 1)
-            self.writer.add_image('GroundTruth depth', normal_to_0_1(gt_depth[0]), 1)
+            # self.writer.add_image('lidar input', normal_to_0_1(lidar[0]), 1)
+            self.writer.add_image('lidar input_plasma', self.colour_mapping(normal_to_0_1(lidar[0])[0]), 1)
+
+            # self.writer.add_image('GroundTruth depth', normal_to_0_1(gt_depth[0]), 1)
+            self.writer.add_image('GroundTruth depth_plasma', self.colour_mapping(normal_to_0_1(gt_depth[0])[0]), 1)
             self.writer.add_image('GroundTruth surface normal', normal_to_0_1(gt_surface_normal[0]), 1)
             
             self.gt_mask = torch.tensor(np.where(gt_depth.numpy() > 0.0, 1.0, 0.0)) # b x 1 x w x h
             self.gt_normal_mask = gt_normal_mask # b x 1 x w x h
 
-            return rgb, lidar, mask
+            return rgb, lidar, mask, gt_depth
 
-    def tensorboard_write(self, epoch, train_losses, val_losses, predicted_dense, pred_surface_normal):
+    def colour_mapping(self,Image):
+        ''' Image 375 x 1242
+            plasma colour mapping
+            return coloured_image 3 x 375 x 1242
+        '''
+        colour_map = plt.get_cmap('plasma')
+        image_array = Image.cpu().numpy()
+        print(image_array.shape)
+        coloured_image = colour_map(image_array)[:,:,:3]
+        coloured_image = np.stack((coloured_image[:,:,0],coloured_image[:,:,1],coloured_image[:,:,2],), axis=0)
+        print(coloured_image.shape)
+        return coloured_image
+
+    def tensorboard_write(self, epoch, train_losses, val_losses, predicted_dense, pred_surface_normal, gt_depth):
         """Write every epoch result on the tensorboard
+
 
         Params:
         epoch: int
@@ -48,11 +67,15 @@ class TensorboardWriter():
             self.writer.add_scalar('train_{}'.format(t), train_losses[i], epoch)
             self.writer.add_scalar('val_{}'.format(t), val_losses[i], epoch)
 
-
+        self.writer.add_image('predicted_dense_plasma', self.colour_mapping(normal_to_0_1(predicted_dense[0],)[0]), epoch)
+        self.writer.add_image('predicted_dense_plasma_threshold', self.colour_mapping(normal_to_0_gtmax(predicted_dense[0], gt_depth[0])[0]), epoch)
         self.writer.add_image('predicted_dense', normal_to_0_1(predicted_dense[0]), epoch)
         self.writer.add_image('pred_surface_normal', normal_to_0_1(pred_surface_normal[0]), epoch)
 
+        self.writer.add_image('mask_predicted_dense_plasma', self.colour_mapping(normal_to_0_1(predicted_dense[0]*self.gt_mask[0])[0]), epoch)
+        self.writer.add_image('mask_predicted_dense_plasma_threshold', self.colour_mapping(normal_to_0_gtmax(predicted_dense[0]*self.gt_mask[0], gt_depth[0])[0]), epoch)
         self.writer.add_image('mask_predicted_dense', normal_to_0_1(predicted_dense[0]*self.gt_mask[0]), epoch)
+
         masked_normal = (pred_surface_normal[0]+torch.max(pred_surface_normal[0]))*self.gt_normal_mask[0]
         self.writer.add_image('mask_pred_surface_normal', normal_to_0_1(masked_normal), epoch)
 

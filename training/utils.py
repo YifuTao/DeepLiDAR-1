@@ -43,7 +43,7 @@ def get_depth_and_normal(model, rgb, lidar, mask):
     """
     model.eval()
     with torch.no_grad():
-        color_path_dense, normal_path_dense, color_attn, normal_attn, pred_surface_normal = model(rgb, lidar, mask, 'A')
+        color_path_dense, normal_path_dense, color_attn, normal_attn, pred_surface_normal, uncertainty = model(rgb, lidar, mask, 'A')
         predicted_dense, _, _ = get_predicted_depth(color_path_dense, normal_path_dense, color_attn, normal_attn)
     return predicted_dense, pred_surface_normal
 
@@ -54,6 +54,17 @@ def normal_to_0_1(img):
     """Normalize image to [0, 1], used for tensorboard visualization."""
     return (img - torch.min(img)) / (torch.max(img) - torch.min(img))
 
+def normal_to_0_gtmax(img,gt):
+    """Normalize image to [0, 1], used for tensorboard visualization."""
+    # print(img.shape)
+    # print(gt.shape)
+    img = img.double()
+    gt = gt.double()
+    img = torch.where(img > gt.min(), img, gt.min())
+    img = torch.where(img < gt.max(), img, gt.max())
+    assert img.max()<=gt.max()
+    assert img.min()>=gt.min()
+    return (img - torch.min(gt)) / (torch.max(gt) - torch.min(gt))
 
 def normal_loss(pred_normal, gt_normal, gt_normal_mask):
     """Calculate loss of surface normal (in the stage N)
