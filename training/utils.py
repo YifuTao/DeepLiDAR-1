@@ -124,10 +124,11 @@ def get_depth_loss(dense, c_dense, n_dense, uncertainty, gt):
     loss_d = criterion(dense, gt)
     # loss_c = criterion(c_dense, gt)
     loss_c = torch.mean(torch.pow(c_dense-gt, 2) / uncertainty)
+    loss_c_no_uncertainty = criterion(c_dense, gt)
     loss_n = criterion(n_dense, gt)
     
 
-    return loss_d, loss_c, loss_n, loss_u
+    return loss_d, loss_c, loss_n, loss_u, loss_c_no_uncertainty
 
 
 
@@ -157,7 +158,7 @@ def get_loss(color_path_dense, normal_path_dense, color_attn, normal_attn, pred_
         #output_normal[:, :, :, 1] = -pred_surface_normal[:, :, :, 2]
         #output_normal[:, :, :, 2] = -pred_surface_normal[:, :, :, 1]
 
-        loss_d, loss_c, loss_n, loss_u = get_depth_loss(predicted_dense, pred_color_path_dense, pred_normal_path_dense, uncertainty, gt_depth)
+        loss_d, loss_c, loss_n, loss_u, loss_c_no_uncertainty = get_depth_loss(predicted_dense, pred_color_path_dense, pred_normal_path_dense, uncertainty, gt_depth)
         loss_normal = normal_loss(pred_surface_normal, gt_surface_normal, gt_normal_mask)
 
-    return loss_c, loss_n, loss_d, loss_normal, loss_u
+    return loss_c, loss_n, loss_d, loss_normal, loss_u, loss_c_no_uncertainty

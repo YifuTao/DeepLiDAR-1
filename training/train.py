@@ -68,10 +68,10 @@ def train_val(model, loader, epoch, device, stage):
     """
 
     model, optimizer, loss_weights = get_optimizer(model, stage)
-    train_loss, val_loss = [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]
+    train_loss, val_loss = [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0]
 
     for phase in ['train', 'val']:
-        total_loss, total_loss_d, total_loss_c, total_loss_n, total_loss_normal, total_loss_u = 0, 0, 0, 0, 0, 0
+        total_loss, total_loss_d, total_loss_c, total_loss_n, total_loss_normal, total_loss_u, total_loss_c_no_unc = 0, 0, 0, 0, 0, 0, 0
         total_pic = 0 # used to calculate average loss
         data_loader = loader[phase]
         pbar = tqdm(iter(data_loader))
@@ -106,7 +106,7 @@ def train_val(model, loader, epoch, device, stage):
             # uncertainty: b x 1 x 128 x 256
 
 
-            loss_c, loss_n, loss_d, loss_normal, loss_u, = get_loss(color_path_dense, normal_path_dense, color_attn,\
+            loss_c, loss_n, loss_d, loss_normal, loss_u, loss_c_no_unc = get_loss(color_path_dense, normal_path_dense, color_attn,\
                                                             normal_attn, pred_surface_normal, stage,\
                                                             gt_depth, params, gt_surface_normal, gt_normal_mask, uncertainty)
 
@@ -118,6 +118,7 @@ def train_val(model, loader, epoch, device, stage):
             total_loss_n += loss_n.item()
             total_loss_normal += loss_normal.item()
             total_loss_u += loss_u.item()
+            total_loss_c_no_unc += loss_c_no_unc
 
             total_pic += rgb.size(0)
 
@@ -128,6 +129,8 @@ def train_val(model, loader, epoch, device, stage):
                 train_loss[3] = total_loss_n/total_pic
                 train_loss[4] = total_loss_normal/total_pic
                 train_loss[5] = total_loss_u/total_pic
+                train_loss[6] = total_loss_c_no_unc/total_pic
+
 
                 loss.backward()
                 optimizer.step()
@@ -140,10 +143,11 @@ def train_val(model, loader, epoch, device, stage):
                 val_loss[3] = total_loss_n/total_pic
                 val_loss[4] = total_loss_normal/total_pic
                 val_loss[5] = total_loss_u/total_pic
+                val_loss[6] = total_loss_c_no_unc/total_pic
 
-            pbar.set_description('[{}] Epoch: {}; loss: {:.4f}; loss_d: {:.4f}, loss_c: {:.4f}, loss_n: {:.4f}, loss_normal: {:.4f}, loss_u: {:.4f}'.\
+            pbar.set_description('[{}] Epoch: {}; loss: {:.4f}; loss_d: {:.4f}, loss_c: {:.4f}, loss_c_no_unc: {:.4f}, loss_u: {:.4f}, loss_n: {:.4f}, loss_normal: {:.4f}'.\
                 format(phase.upper(), epoch + 1, total_loss/total_pic , total_loss_d/total_pic, \
-                total_loss_c/total_pic, total_loss_n/total_pic, total_loss_normal/total_pic, total_loss_u/total_pic))
+                total_loss_c/total_pic, total_loss_c_no_unc/total_pic, total_loss_u/total_pic, total_loss_n/total_pic, total_loss_normal/total_pic, ))
 
     return train_loss, val_loss
 
