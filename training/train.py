@@ -110,7 +110,8 @@ def train_val(model, loader, epoch, device, stage):
                                                             normal_attn, pred_surface_normal, stage,\
                                                             gt_depth, params, gt_surface_normal, gt_normal_mask, uncertainty)
 
-            loss = loss_weights[0] * loss_c + loss_weights[1] * loss_n + loss_weights[2] * loss_d + loss_weights[3] * loss_normal + loss_weights[0] * loss_u
+            # loss = loss_weights[0] * loss_c + loss_weights[1] * loss_n + loss_weights[2] * loss_d + loss_weights[3] * loss_normal + loss_weights[0] * loss_u
+            loss = loss_weights[0]*loss_c + loss_weights[0]*loss_u
 
             total_loss += loss.item()
             total_loss_d += loss_d.item()
