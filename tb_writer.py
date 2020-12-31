@@ -41,13 +41,13 @@ class TensorboardWriter():
         '''
         colour_map = plt.get_cmap('plasma')
         image_array = Image.cpu().numpy()
-        print(image_array.shape)
+        # print(image_array.shape)
         coloured_image = colour_map(image_array)[:,:,:3]
         coloured_image = np.stack((coloured_image[:,:,0],coloured_image[:,:,1],coloured_image[:,:,2],), axis=0)
-        print(coloured_image.shape)
+        # print(coloured_image.shape)
         return coloured_image
 
-    def tensorboard_write(self, epoch, train_losses, val_losses, predicted_dense, pred_surface_normal, gt_depth):
+    def tensorboard_write(self, epoch, train_losses, val_losses, predicted_dense, pred_surface_normal, gt_depth, uncertainty):
         """Write every epoch result on the tensorboard
 
 
@@ -69,15 +69,21 @@ class TensorboardWriter():
 
         self.writer.add_image('predicted_dense_plasma', self.colour_mapping(normal_to_0_1(predicted_dense[0],)[0]), epoch)
         self.writer.add_image('predicted_dense_plasma_threshold', self.colour_mapping(normal_to_0_gtmax(predicted_dense[0], gt_depth[0])[0]), epoch)
-        self.writer.add_image('predicted_dense', normal_to_0_1(predicted_dense[0]), epoch)
+        # self.writer.add_image('predicted_dense', normal_to_0_1(predicted_dense[0]), epoch)
         self.writer.add_image('pred_surface_normal', normal_to_0_1(pred_surface_normal[0]), epoch)
 
         self.writer.add_image('mask_predicted_dense_plasma', self.colour_mapping(normal_to_0_1(predicted_dense[0]*self.gt_mask[0])[0]), epoch)
         self.writer.add_image('mask_predicted_dense_plasma_threshold', self.colour_mapping(normal_to_0_gtmax(predicted_dense[0]*self.gt_mask[0], gt_depth[0])[0]), epoch)
-        self.writer.add_image('mask_predicted_dense', normal_to_0_1(predicted_dense[0]*self.gt_mask[0]), epoch)
+        # self.writer.add_image('mask_predicted_dense', normal_to_0_1(predicted_dense[0]*self.gt_mask[0]), epoch)
 
         masked_normal = (pred_surface_normal[0]+torch.max(pred_surface_normal[0]))*self.gt_normal_mask[0]
         self.writer.add_image('mask_pred_surface_normal', normal_to_0_1(masked_normal), epoch)
+        # print('----------')
+        # print('uncertainty shape')
+        # print(uncertainty.shape)
+        # print(predicted_dense.shape)
+        # print('----------')
+        self.writer.add_image('uncertainty', self.colour_mapping(normal_to_0_1(predicted_dense[0],)[0]), epoch)
 
     def close(self):
         self.writer.close()
