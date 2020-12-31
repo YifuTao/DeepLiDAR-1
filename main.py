@@ -65,8 +65,8 @@ def main():
         print('Loss of loaded model: {:.4f}'.format(dic['val_loss']))
 
     # main_train(model, 'N')
-    # main_train(model, 'D')
-    main_train(model, 'A')
+    main_train(model, 'D')
+    # main_train(model, 'A')
 
 
 if __name__ == '__main__':

@@ -107,7 +107,7 @@ def get_depth_loss(dense, c_dense, n_dense, uncertainty, gt):
     dense, c_dense, n_dense, uncertainty = dense[valid_mask], c_dense[valid_mask], n_dense[valid_mask], uncertainty[valid_mask]
     criterion = nn.MSELoss()
 
-    loss_d = torch.mean(torch.pow(dense-gt, 2) / uncertainty)
+    # loss_d = torch.mean(torch.pow(dense-gt, 2) / uncertainty)
     # print(loss_d)
     # print(torch.pow(dense-gt, 2))
     # print(torch.mean(torch.pow(dense-gt, 2)))
@@ -121,7 +121,9 @@ def get_depth_loss(dense, c_dense, n_dense, uncertainty, gt):
     # loss_d = torch.sqrt(criterion(dense, gt))
     # loss_c = torch.sqrt(criterion(c_dense, gt))
     # loss_n = torch.sqrt(criterion(n_dense, gt))
-    loss_c = criterion(c_dense, gt)
+    loss_d = criterion(dense, gt)
+    # loss_c = criterion(c_dense, gt)
+    loss_c = torch.mean(torch.pow(c_dense-gt, 2) / uncertainty)
     loss_n = criterion(n_dense, gt)
     
 

@@ -1,6 +1,6 @@
 import os
 SAVED_MODEL_PATH = '/home/yifu/data/saved_model'
-KITTI_DATASET_PATH = '/home/yifu/data/test'
+KITTI_DATASET_PATH = '/home/yifu/data/test_KITTI'
 PREDICTED_RESULT_DIR = '/home/yifu/data/tmp/predict_dense'
 
 # SAVED_MODEL_PATH = '/media/ethan/DATA/saved_model'

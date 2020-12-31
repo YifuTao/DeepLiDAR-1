@@ -36,9 +36,12 @@ def get_optimizer(model, stage):
             param.requires_grad = True
         for param in model.normal_path.parameters():
             param.requires_grad = True
+        for param in model.uncertainty.parameters():
+            param.requires_grad = True
 
         optimizer = optim.Adam([{'params':model.color_path.parameters()},
-                                {'params':model.normal_path.parameters()}], lr=0.001, betas=(0.9, 0.999))
+                                {'params':model.normal_path.parameters()},
+                                {'params':model.uncertainty.parameters()},], lr=0.001, betas=(0.9, 0.999))
         loss_weights = [0.3, 0.3, 0.0, 0.1]
 
     else:
@@ -107,7 +110,7 @@ def train_val(model, loader, epoch, device, stage):
                                                             normal_attn, pred_surface_normal, stage,\
                                                             gt_depth, params, gt_surface_normal, gt_normal_mask, uncertainty)
 
-            loss = loss_weights[0] * loss_c + loss_weights[1] * loss_n + loss_weights[2] * loss_d + loss_weights[3] * loss_normal + 0.1 * loss_u
+            loss = loss_weights[0] * loss_c + loss_weights[1] * loss_n + loss_weights[2] * loss_d + loss_weights[3] * loss_normal + loss_weights[0] * loss_u
 
             total_loss += loss.item()
             total_loss_d += loss_d.item()
