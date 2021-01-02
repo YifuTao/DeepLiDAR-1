@@ -45,7 +45,7 @@ def get_depth_and_normal(model, rgb, lidar, mask):
     with torch.no_grad():
         color_path_dense, normal_path_dense, color_attn, normal_attn, pred_surface_normal, uncertainty = model(rgb, lidar, mask, 'A')
         predicted_dense, _, _ = get_predicted_depth(color_path_dense, normal_path_dense, color_attn, normal_attn)
-    return predicted_dense, pred_surface_normal, uncertainty
+    return predicted_dense, pred_surface_normal, uncertainty, color_path_dense
 
 
 
